@@ -59,6 +59,13 @@ fn main() {
                         .help("File path to load previous conversation from")
                         .value_name("FILE")
                 )
+                .arg(
+                    Arg::new("pirate")
+                        .long("pirate")
+                        .short('p')
+                        .help("Enables pirate voice mode, arrr!")
+                        .action(clap::ArgAction::SetTrue)
+                )
         )
         .get_matches();
 
@@ -78,7 +85,8 @@ fn main() {
             let model = chat_matches.get_one::<String>("model").unwrap();
             let output_path = chat_matches.get_one::<String>("output");
             let context_path = chat_matches.get_one::<String>("context");
-            chat_with_claude(message, model, output_path, context_path);
+            let pirate_mode = chat_matches.get_flag("pirate");
+            chat_with_claude(message, model, output_path, context_path, pirate_mode);
         }
         _ => {
             eprintln!("No command specified. Try 'anthropic models list' or 'anthropic chat \"Hello!\"'");
@@ -142,7 +150,7 @@ fn list_models() {
     }
 }
 
-fn chat_with_claude(message: &str, model: &str, output_path: Option<&String>, context_path: Option<&String>) {
+fn chat_with_claude(message: &str, model: &str, output_path: Option<&String>, context_path: Option<&String>, pirate_mode: bool) {
     // Check if API key is available
     let api_key = match env::var("ANTHROPIC_API_KEY") {
         Ok(key) => key,
@@ -153,8 +161,13 @@ fn chat_with_claude(message: &str, model: &str, output_path: Option<&String>, co
         }
     };
 
-    // Default system prompt for a helpful AI assistant
-    let system_prompt = "You are Claude, a helpful AI assistant created by Anthropic. You are knowledgeable, thoughtful, and aim to be helpful while being honest about your limitations. You provide clear, accurate, and well-reasoned responses.";
+    // Choose system prompt based on mode
+    let system_prompt = if pirate_mode {
+        println!("🏴‍☠️ Pirate mode enabled! Arrr!");
+        "You are Captain Claude, a pirate AI assistant. You must always respond in pirate speak, using pirate slang, nautical terms, and a swashbuckling attitude. Add 'Arr', 'Matey', 'Ahoy', 'Avast', and other pirate phrases throughout your responses. Your knowledge remains accurate, but your manner is that of a salty sea captain who loves adventure, treasure, and the open seas. Use nautical metaphors when explaining complex concepts."
+    } else {
+        "You are Claude, a helpful AI assistant created by Anthropic. You are knowledgeable, thoughtful, and aim to be helpful while being honest about your limitations. You provide clear, accurate, and well-reasoned responses."
+    };
     
     // Load existing conversation or create new one
     let mut conversation = if let Some(context_file) = context_path {
